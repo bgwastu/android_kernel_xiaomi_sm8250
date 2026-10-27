@@ -1,28 +1,26 @@
 name: Build Kernel
 
 on:
-  push:
-    branches:
-      - HyperSU
   workflow_dispatch:
     inputs:
       device:
         description: 'Target Device Code (设备代号)'
         required: true
-        default: 'alioth'
+        default: 'munch'
         type: choice
         options:
+          - munch
           - alioth
           - lmi
       ksu:
-        description: 'Enable KernelSU (HyperSU)'
+        description: 'Enable KernelSU (ReSukiSU + SUSFS)'
         required: true
         type: boolean
         default: true
       target_os:
         description: 'Target OS (目标系统)'
         required: true
-        default: 'miui'
+        default: 'aosp'
         type: choice
         options:
           - aosp
@@ -34,9 +32,6 @@ on:
         type: boolean
         default: true
 
-  schedule:
-    - cron: '13 12 * * 1-6'
-    - cron: '59 14 * * 0'
 
 env:
   CCACHE_DIR: ~/.cache/ccache_mikernel
@@ -46,7 +41,7 @@ env:
 
 jobs:
   build-kernel:
-    name: Build ${{ github.event.inputs.device || 'alioth' }} | KSU:${{ github.event.inputs.ksu || true }} | OS:${{ github.event.inputs.target_os || 'miui' }}
+    name: Build ${{ github.event.inputs.device || 'munch' }} | KSU:${{ github.event.inputs.ksu || true }} | OS:${{ github.event.inputs.target_os || 'aosp' }}
     runs-on: ubuntu-latest
 
     permissions:
@@ -88,9 +83,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device || 'alioth' }}-${{ github.sha }}
+          key: ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device || 'munch' }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device || 'alioth' }}-
+            ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device || 'munch' }}-
             ${{ runner.os }}-kernel-ccache-
 
       - name: Configure ccache & Print Pre-Build Stats
@@ -122,9 +117,9 @@ jobs:
           export USE_CCACHE=1
           export CCACHE_EXEC=$(which ccache)
             
-          DEVICE="${{ github.event.inputs.device || 'alioth' }}"
+          DEVICE="${{ github.event.inputs.device || 'munch' }}"
           KSU="${{ github.event.inputs.ksu || 'true' }}"
-          TARGET_OS="${{ github.event.inputs.target_os || 'miui' }}"
+          TARGET_OS="${{ github.event.inputs.target_os || 'aosp' }}"
             
           ARGS="$DEVICE"
           [ "$KSU" == "true" ] && ARGS="$ARGS ksu"
@@ -158,21 +153,21 @@ jobs:
       - name: Upload Flashable ZIP & Modules (Artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: DEBUG_APTKernel-${{ github.event.inputs.device || 'alioth' }}-${{ github.event.inputs.target_os || 'miui' }}-${{ github.run_id }}
+          name: DEBUG_APTKernel-${{ github.event.inputs.device || 'munch' }}-${{ github.event.inputs.target_os || 'aosp' }}-${{ github.run_id }}
           path: "*.zip"
           compression-level: 0
 
       - name: Publish Release
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'push' || github.event.inputs.release != 'false' }}
+        if: ${{ github.event.inputs.release != 'false' }}
         uses: softprops/action-gh-release@v2
         with:
           files: "*.zip"
-          tag_name: kernel-${{ github.event.inputs.device || 'alioth' }}-${{ github.run_id }}
-          name: "Kernel Build for ${{ github.event.inputs.device || 'alioth' }} (${{ github.event.inputs.target_os || 'miui' }})"
+          tag_name: kernel-${{ github.event.inputs.device || 'munch' }}-${{ github.run_id }}
+          name: "Kernel Build for ${{ github.event.inputs.device || 'munch' }} (${{ github.event.inputs.target_os || 'aosp' }})"
           body: |
             Automatic kernel build.
-            - **Device:** ${{ github.event.inputs.device || 'alioth' }}
+            - **Device:** ${{ github.event.inputs.device || 'munch' }}
             - **KernelSU:** ${{ github.event.inputs.ksu || 'true' }}
-            - **Target OS:** ${{ github.event.inputs.target_os || 'miui' }}
+            - **Target OS:** ${{ github.event.inputs.target_os || 'aosp' }}
           draft: false
           prerelease: false
