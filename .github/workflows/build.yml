@@ -79,8 +79,8 @@ jobs:
           tar -zxvf Clang-16.0.6-20260510.tar.gz
           rm Clang-16.0.6-20260510.tar.gz
 
-      - name: Cache ccache
-        uses: actions/cache@v4
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device || 'munch' }}-${{ github.sha }}
@@ -149,6 +149,13 @@ jobs:
         run: |
           echo "=== Post-Build Ccache Stats ==="
           ccache -s
+
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device || 'munch' }}-${{ github.sha }}
 
       - name: Upload Flashable ZIP & Modules (Artifact)
         uses: actions/upload-artifact@v4
